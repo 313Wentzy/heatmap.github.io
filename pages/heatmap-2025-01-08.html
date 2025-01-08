@@ -1,0 +1,208 @@
+
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Heatmap - 2025-01-08</title>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+            <style>
+                body {
+                    margin: 0;
+                    font-family: Arial, sans-serif;
+                    background-color: #303136;
+                    color: white;
+                    overflow: hidden;
+                }
+        
+                nav {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    background-color: black;
+                    color: rgb(255, 255, 255);
+                    padding: 10px 20px;
+                }
+        
+                nav .left {
+                    font-size: 1.2rem;
+                }
+        
+                nav .center {
+                    flex: 1;
+                    display: flex;
+                    justify-content: center;
+                }
+        
+                nav .center select {
+                    padding: 5px 10px;
+                    font-size: 1rem;
+                    background-color: #444;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                }
+        
+                nav .right {
+                    position: relative;
+                }
+        
+                nav .right button {
+                    border-radius: 10px;
+                    background-color: #444;
+                    color: white;
+                    border: none;
+                    padding: 10px;
+                    cursor: pointer;
+                    font-size: 1rem;
+                }
+        
+                nav .dropdown {
+                    z-index: 1090;
+                    display: none;
+                    position: absolute;
+                    top: 40px;
+                    right: 0;
+                    border-radius: 10px;
+                    background-color: rgb(158, 158, 158);
+                    border: 1px solid #ddd;
+                    width: 200px;
+                    max-height: 200px;
+                    overflow-y: auto;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    color: black;
+                }
+        
+                nav .dropdown p {
+                    font-weight: 550;
+                    margin: 0;
+                    padding: 10px;
+                    font-size: 0.9rem;
+                    border-bottom: 1px solid #ddd;
+                }
+        
+                nav .dropdown p:last-child {
+                    border-bottom: none;
+                }
+        
+                nav .dropdown p:hover {
+                    cursor: pointer;
+                    background-color: #f0f0f0;
+                    color: black;
+                }
+        
+                #map {
+                    background-color: #303136;
+                    height: calc(100vh - 50px);
+                }
+            </style>
+        </head>
+        <body>
+            <nav>
+                <div class="left">Heatmap - 2025-01-08</div>
+                <div class="center">
+                    <select id="filter" onchange="updateFilter()">
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                    </select>
+                </div>
+                <div class="right">
+                    <button onclick="toggleDropdown()">View All Data</button>
+                    <div class="dropdown" id="dropdown">
+                        <p>Loading data...</p>
+                    </div>
+                </div>
+            </nav>
+            <div id="map"></div>
+        
+            <script>
+                const map = L.map('map', {
+                    crs: L.CRS.Simple,
+                    center: [-128, 128],
+                    zoom: 2,
+                    maxZoom: 7,
+                    minZoom: 2,
+                    noWrap: true,
+                    zoomControl: false,
+                    attributionControl: false
+                });
+
+                L.tileLayer('https://dropmazter.com/wp-content/themes/astra/fortnite.gg/maps/33.111/{z}/{x}/{y}.jpg', {
+                    maxZoom: 7,
+                    minZoom: 1,
+                    bounds: [
+                        [-256, 0],
+                        [0, 256]
+                    ]
+                }).addTo(map);
+        
+                const dropdown = document.getElementById('dropdown');
+                const filterSelect = document.getElementById('filter');
+                let heatmapLayer;
+        
+                const databaseData = {"daily":[{"x":1866.2109375,"y":454.1015625}],"weekly":[{"x":1913.0859375,"y":547.8515625},{"x":1419.43359375,"y":1637.6953125},{"x":1419.43359375,"y":1637.6953125},{"x":1419.525146484375,"y":1638.336181640625},{"x":1507.14111328125,"y":1112.548828125},{"x":1507.14111328125,"y":1112.548828125},{"x":1507.14111328125,"y":1112.548828125},{"x":1507.14111328125,"y":1112.548828125},{"x":2223.44970703125,"y":1371.826171875},{"x":2221.435546875,"y":1371.826171875},{"x":2224.365234375,"y":1372.55859375},{"x":1866.2109375,"y":454.1015625}],"monthly":[{"x":1541.015625,"y":726.5625},{"x":1555.6640625,"y":741.2109375},{"x":1502.9296875,"y":364.74609375},{"x":1549.8046875,"y":732.421875},{"x":1538.0859375,"y":715.576171875},{"x":1543.9453125,"y":717.041015625},{"x":1552.734375,"y":725.09765625},{"x":1561.5234375,"y":726.5625},{"x":357.421875,"y":585.9375},{"x":1973.14453125,"y":909.66796875},{"x":1973.14453125,"y":909.66796875},{"x":1973.14453125,"y":909.66796875},{"x":558.28857421875,"y":1901.18408203125},{"x":487.4267578125,"y":1904.296875},{"x":487.060546875,"y":1900.634765625},{"x":1506.591796875,"y":1113.28125},{"x":2223.08349609375,"y":1372.74169921875},{"x":2225.09765625,"y":1370.361328125},{"x":2222.900390625,"y":1372.55859375},{"x":2221.8017578125,"y":1370.361328125},{"x":2220.977783203125,"y":1371.185302734375},{"x":1533.3251953125,"y":2310.4248046875},{"x":2056.640625,"y":2405.2734375},{"x":2096.5576171875,"y":2365.72265625},{"x":2044.921875,"y":2426.513671875},{"x":1913.0859375,"y":547.8515625},{"x":1419.43359375,"y":1637.6953125},{"x":1419.43359375,"y":1637.6953125},{"x":1419.525146484375,"y":1638.336181640625},{"x":1507.14111328125,"y":1112.548828125},{"x":1507.14111328125,"y":1112.548828125},{"x":1507.14111328125,"y":1112.548828125},{"x":1507.14111328125,"y":1112.548828125},{"x":2223.44970703125,"y":1371.826171875},{"x":2221.435546875,"y":1371.826171875},{"x":2224.365234375,"y":1372.55859375},{"x":1866.2109375,"y":454.1015625}]};
+
+                function populateDropdown(data) {
+                    if (!data || data.length === 0) {
+                        dropdown.innerHTML = '<p>No data available</p>';
+                        return;
+                    }
+        
+                    dropdown.innerHTML = data
+                    .map(coord => '<p onclick="plotMarker(' + coord.x + ', ' + coord.y + ')">X: ' + coord.x + ', Y: ' + coord.y + '</p>')
+                    .join('');
+                }
+        
+                function plotMarker(x, y) {
+                    const { lat, lng } = xyToLatLng(x, y);
+                    const marker = L.marker([lat, lng]).addTo(map);
+        
+                    setTimeout(() => map.removeLayer(marker), 10000);
+                }
+        
+                function toggleDropdown() {
+                    dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+                }
+        
+                function addHeatmap(data) {
+                    const heatmapData = data.map(coord => {
+                        const { lat, lng } = xyToLatLng(coord.x, coord.y);
+                        return [lat, lng, 7];
+                    });
+        
+                    if (heatmapLayer) {
+                        map.removeLayer(heatmapLayer);
+                    }
+        
+                    heatmapLayer = L.heatLayer(heatmapData, {
+                        radius: 30,
+                        blur: 15,
+                        maxZoom: 7,
+                        gradient: {
+                            0.2: 'blue',
+                            0.7: 'lime',
+                            1: 'red'
+                        }
+                    }).addTo(map);
+                }
+        
+                function updateFilter() {
+                    const filterValue = filterSelect.value;
+                    const data = databaseData[filterValue] || [];
+                    populateDropdown(data);
+                    addHeatmap(data);
+                }
+        
+                function xyToLatLng(x, y) {
+                    const lat = 256 - ((y + 3000) / 6000 * 512);
+                    const lng = ((x + 3000) / 6000 * 512) - 256;
+                    return { lat, lng };
+                }
+        
+                updateFilter();
+            </script>
+        </body>
+        </html>      
